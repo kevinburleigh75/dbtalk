@@ -4,6 +4,7 @@ export RDS_SMALL_HOST=t2micro.cq28zltnxqai.us-east-1.rds.amazonaws.com
 export RDS_BIG_HOST=r4xlarge.cq28zltnxqai.us-east-1.rds.amazonaws.com
 
 export RDS_HOST=$RDS_SMALL_HOST
+export RDS_HOST=$RDS_BIG_HOST
 
 bundle exec rake vote:init
 bundle exec rake vote:tally[,1000]
@@ -27,6 +28,8 @@ bundle exec rake vote:record[1,6000]
 bundle exec rake vote:record[1,4000]
 bundle exec rake vote:record[1,3000]
 bundle exec rake vote:record[1,2500]
+
+bundle exec rake vote:record[1,25000,4]
 
 psql -h $RDS_SMALL_HOST -U masteruser dbtalk
 psql -h $RDS_BIG_HOST -U masteruser dbtalk
