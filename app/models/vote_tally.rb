@@ -1,0 +1,2 @@
+class VoteTally < ApplicationRecord
+end
