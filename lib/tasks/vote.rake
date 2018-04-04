@@ -90,23 +90,45 @@ namespace :vote do
     num_threads          = Integer(args[:num_threads] || 1)
     num_votes_per_thread = Integer(args[:num_votes_per_thread] || 1)
 
-    start = Time.now
-    num_votes_per_thread.times.each do |vote_idx|
-      rand_val = Kernel.rand
-      researcher_idx = researcher_thresholds.select{|thresh| thresh < rand_val}.count
-      researcher_name = researcher_names[researcher_idx]
+    output_mutex = Mutex.new
 
-      VoteRecord.create!(
-        uuid: SecureRandom.uuid.to_s,
-        name: researcher_name,
-        has_been_counted: false,
-      )
+    ActiveRecord::Base.clear_active_connections!
+    VoteRecord
 
-      # output_mutex.synchronize {
-      #   puts "#{Time.now.utc.iso8601(6)} thread #{Thread.current.object_id} vote #{vote_idx} #{researcher_name}"
-      # }
+    wait_for_it = true
 
+    threads = num_threads.times.map do |thread_idx|
+      Thread.new do
+        while wait_for_it
+        end
+
+        num_votes_per_thread.times.each do |vote_idx|
+          ActiveRecord::Base.connection_pool.with_connection do
+            rand_val = Kernel.rand
+            researcher_idx = researcher_thresholds.select{|thresh| thresh < rand_val}.count
+            researcher_name = researcher_names[researcher_idx]
+
+            VoteRecord.transaction(isolation: :read_committed) do
+              VoteRecord.create!(
+                uuid: SecureRandom.uuid.to_s,
+                name: researcher_name,
+                has_been_counted: false,
+              )
+            end
+
+            # output_mutex.synchronize {
+            #   puts "#{Time.now.utc.iso8601(6)} thread #{Thread.current.object_id} vote #{vote_idx} #{researcher_name}"
+            # }
+
+          end
+        end
+      end
     end
+
+    wait_for_it = false
+
+    start = Time.now
+    threads.each{|thread| thread.join}
     elapsed = Time.now - start
 
     total_votes   = num_threads*num_votes_per_thread
