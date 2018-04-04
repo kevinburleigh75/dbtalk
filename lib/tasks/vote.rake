@@ -3,42 +3,58 @@ researcher_info = [
     name: 'Peter Bailis',
     weight: 100,
   },
-  # {
-  #   name: 'Nancy Lynch',
-  #   weight: 75,
-  # },
-  # {
-  #   name: 'Barbara Liskov',
-  #   weight: 60,
-  # },
-  # {
-  #   name: 'Justin Bieber',
-  #   weight: 3,
-  # },
+  {
+    name: 'Nancy Lynch',
+    weight: 75,
+  },
+  {
+    name: 'Barbara Liskov',
+    weight: 60,
+  },
+  {
+    name: 'Leslie Lamport',
+    weight: 45,
+  },
+  {
+    name: 'Michael Fisher',
+    weight: 30,
+  },
+  {
+    name: 'Michael Paterson',
+    weight: 53,
+  },
+  {
+    name: 'Justin Bieber',
+    weight: 1,
+  },
 ]
 
 researcher_names   = researcher_info.map{|info| info[:name]}
 researcher_weights = researcher_info.map{|info| info[:weight]}
-total_weight = Float(researcher_weights.inject(&:+))
-researcher_thresholds = researcher_weights.inject([]) { |result,current|
-  result + [(result.last || 0) + current/total_weight]
-}
 
 namespace :vote do
-  task :init, [] => :environment do |tt, args|
+  task :init, [:num_researchers] => :environment do |tt, args|
+    num_researchers = Integer(args[:num_researchers] || researcher_names.count)
+
     ActiveRecord::Base.connection.execute('delete from vote_tallies')
     ActiveRecord::Base.connection.execute('delete from vote_records')
 
-    researcher_names.each do |name|
+    researcher_names.take(num_researchers).each do |name|
       VoteTally.create!(name: name, num_votes: 0)
     end
   end
 end
 
 namespace :vote do
-  task :tally, [:num_threads, :num_votes_per_thread] => :environment do |tt, args|
-    num_threads          = Integer(args[:num_threads] || 1)
+  task :tally, [:num_researchers, :num_votes_per_thread, :num_threads] => :environment do |tt, args|
+    num_researchers      = Integer(args[:num_researchers] || researcher_names.count)
     num_votes_per_thread = Integer(args[:num_votes_per_thread] || 1)
+    num_threads          = Integer(args[:num_threads] || 1)
+
+    total_weight          = Float(researcher_weights.take(num_researchers).inject(&:+))
+    researcher_thresholds = researcher_weights.take(num_researchers).inject([]) { |result,current|
+      result + [(result.last || 0) + current/total_weight]
+    }
 
     output_mutex = Mutex.new
 
@@ -86,9 +102,15 @@ namespace :vote do
 end
 
 namespace :vote do
-  task :record, [:num_threads, :num_votes_per_thread] => :environment do |tt, args|
-    num_threads          = Integer(args[:num_threads] || 1)
+  task :record, [:num_researchers, :num_votes_per_thread, :num_threads] => :environment do |tt, args|
+    num_researchers      = Integer(args[:num_researchers] || researcher_names.count)
     num_votes_per_thread = Integer(args[:num_votes_per_thread] || 1)
+    num_threads          = Integer(args[:num_threads] || 1)
+
+    total_weight          = Float(researcher_weights.take(num_researchers).inject(&:+))
+    researcher_thresholds = researcher_weights.take(num_researchers).inject([]) { |result,current|
+      result + [(result.last || 0) + current/total_weight]
+    }
 
     output_mutex = Mutex.new
 
