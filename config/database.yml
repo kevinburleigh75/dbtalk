@@ -81,7 +81,7 @@ test:
 production:
   <<: *default
   database: dbtalk
-  host:     t2micro.cq28zltnxqai.us-east-1.rds.amazonaws.com
+  host:     <%= ENV['RDS_HOST'] %>
   port:     5432
   username: masteruser
   password: masterpassword
