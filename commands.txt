@@ -29,7 +29,7 @@ bundle exec rake vote:record[1,4000]
 bundle exec rake vote:record[1,3000]
 bundle exec rake vote:record[1,2500]
 
-bundle exec rake vote:record[1,25000,4]
+bundle exec rake vote:record[1,25000,2]
 
 psql -h $RDS_SMALL_HOST -U masteruser dbtalk
 psql -h $RDS_BIG_HOST -U masteruser dbtalk
@@ -38,3 +38,7 @@ select * from vote_tallies order by num_votes desc;
 select count(*) from vote_records;
 
 ssh -i ~/.ssh/kevin_va_kp.pem -oStrictHostKeyChecking=no ubuntu@
+
+\timing
+select * from vote_tallies order by num_votes desc;
+select name,count(*) from vote_records group by name;
